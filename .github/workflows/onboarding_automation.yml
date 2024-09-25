@@ -22,18 +22,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
 
-    - name: Process repository additions
-      if: contains(github.event.comment.body, '/onboard repos')
-      env:
-        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      run: |
-        USERS_DATA=$(echo "${{ github.event.comment.body }}" | sed -n '/\/onboard repos/,/\/end/p' | sed '1d;$d')
-        python scripts/add_to_repos.py "$USERS_DATA"
-
     - name: Process organization additions
       if: contains(github.event.comment.body, '/onboard orgs')
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        COMMENT_BODY: ${{ github.event.comment.body }}
       run: |
-        USERS_DATA=$(echo "${{ github.event.comment.body }}" | sed -n '/\/onboard orgs/,/\/end/p' | sed '1d;$d')
+        USERS_DATA=$(echo "$COMMENT_BODY" | sed -n '/\/onboard orgs/,/\/end/p' | sed '1d;$d')
         python scripts/add_to_orgs.py "$USERS_DATA"
+
+    - name: Process repository additions
+      if: contains(github.event.comment.body, '/onboard repos')
+      env:
+        GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        COMMENT_BODY: ${{ github.event.comment.body }}
+      run: |
+        USERS_DATA=$(echo "$COMMENT_BODY" | sed -n '/\/onboard repos/,/\/end/p' | sed '1d;$d')
+        python scripts/add_to_repos.py "$USERS_DATA"
