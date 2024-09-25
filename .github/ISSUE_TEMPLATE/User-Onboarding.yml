@@ -1,6 +1,6 @@
 name: IssueOps 
 description: Use this template for IssueOps commands to add users to repositories or organizations
-title: " Add User Request"
+title: "Add User Request"
 labels: [issueops]
 assignees: 
   - viswa9357
@@ -24,15 +24,6 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: request-description
-    attributes:
-      label: Request Details
-      description: Please provide more details about your request.
-      placeholder: Enter your request details here (e.g., username, repository name, or organization name)...
-    validations:
-      required: true
-
   - type: markdown
     attributes:
       value: |
@@ -40,7 +31,7 @@ body:
 
         **Important:** After creating this issue, add a new comment with one of these commands based on your request type:
 
-        - For adding a repository collaborator: `/issueops add_repo`
-        - For adding an organization member: `/issueops add`
+        - For adding a repository collaborator: `/issueops add_repo username owner/repo`
+        - For adding an organization member: `/issueops add username organization permission`
 
-        Make sure to use the exact command as the separate comment after the issue is created.
+        Make sure to use the exact command format as a separate comment after the issue is created.

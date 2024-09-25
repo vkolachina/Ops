@@ -1,6 +1,6 @@
-import csv
 import requests
 import os
+import re
 
 def get_user_id(username, token):
     url = f"https://api.github.com/users/{username}"
@@ -39,53 +39,31 @@ def add_collaborator_to_org(org_name, user_id, permission, token):
         print(f"Failed to invite user with ID {user_id} to {org_name}. Status code: {response.status_code}")
         print(f"Response: {response.text}")
 
-def process_github_data(file_path, token):
-    organizations = []
-    collaborators = []
+def parse_comment(comment):
+    pattern = r'/issueops add\s+(\w+)\s+(\w+)\s+(\w+)'
+    match = re.search(pattern, comment)
+    if match:
+        return match.groups()
+    return None
 
-    with open(file_path, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        
-        # Ensure headers match what we're expecting
-        if 'type' not in reader.fieldnames or 'name' not in reader.fieldnames or 'username' not in reader.fieldnames or 'permission' not in reader.fieldnames:
-            print("Error: CSV file headers are incorrect. Expected headers: 'type', 'name', 'username', 'permission'.")
-            exit(1)
-        
-        for row in reader:
-            if row['type'] == 'organization':
-                organizations.append(row['name'])
-            elif row['type'] == 'collaborator':
-                collaborators.append({'username': row['username'], 'permission': row['permission']})
-
-    print("Organizations:", organizations)
-    print("Collaborators:", collaborators)
-
-    for org in organizations:
-        print(f"\nProcessing organization: {org}")
-        for collab in collaborators:
-            username = collab['username']
-            permission = collab['permission']
-            if not username or not permission:
-                print(f"Skipping empty or invalid collaborator entry: {collab}")
-                continue
-            user_id = get_user_id(username, token)
-            if user_id:
-                add_collaborator_to_org(org, user_id, permission, token)
-            else:
-                print(f"Skipping invitation for {username} due to failure in getting user ID")
+def process_github_data(username, org_name, permission, token):
+    user_id = get_user_id(username, token)
+    if user_id:
+        add_collaborator_to_org(org_name, user_id, permission, token)
+    else:
+        print(f"Skipping invitation for {username} due to failure in getting user ID")
 
 if __name__ == "__main__":
-    # Get the token from environment variable
-    token = os.getenv('GITHUB_TOKEN')  # This will be passed from the GitHub Actions workflow
+    token = os.getenv('GITHUB_TOKEN')
     if not token:
         print("Error: GitHub token not found. Please set the GITHUB_TOKEN environment variable.")
         exit(1)
 
-    # Set default CSV path
-    file_path = os.getenv('COLLABORATORS_CSV_PATH', os.path.join(os.path.dirname(__file__), '..', 'data', 'collaborator.csv'))
+    comment_body = os.getenv('COMMENT_BODY')
+    parsed_data = parse_comment(comment_body)
     
-    if not os.path.isfile(file_path):
-        print(f"Error: CSV file not found at {file_path}")
-        exit(1)
-
-    process_github_data(file_path, token)
+    if parsed_data:
+        username, org_name, permission = parsed_data
+        process_github_data(username, org_name, permission, token)
+    else:
+        print("Error: Invalid command format. Use '/issueops add username organization permission'")

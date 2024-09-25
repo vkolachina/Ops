@@ -20,59 +20,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests python-dotenv
-
-    - name: Debug - Environment and File System
-      run: |
-        echo "Current working directory:"
-        pwd
-        echo "Contents of current directory:"
-        ls -la
-        echo "Contents of scripts directory:"
-        ls -la scripts/
-        echo "Contents of data directory:"
-        ls -la data/
-        echo "Environment variables:"
-        env
-        echo "GitHub workspace:"
-        echo ${{ github.workspace }}
+        pip install requests
 
     - name: Run add_repo script
       if: contains(github.event.comment.body, '/issueops add_repo')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        INVITATIONS_CSV_PATH: ${{ github.workspace }}/data/invitations.csv
-      run: |
-        if [ -z "$(ls -A ${{ github.workspace }}/data)" ]; then
-          echo "Error: data directory is empty"
-          exit 1
-        fi
-        
-        if [ ! -f "$INVITATIONS_CSV_PATH" ]; then
-          echo "Error: invitations.csv not found at $INVITATIONS_CSV_PATH"
-          ls -la $(dirname "$INVITATIONS_CSV_PATH")
-          exit 1
-        fi
-        
-        echo "invitations.csv found, running script"
-        python scripts/add_repo.py
+        COMMENT_BODY: ${{ github.event.comment.body }}
+      run: python scripts/add_repo.py
 
     - name: Run add script
       if: contains(github.event.comment.body, '/issueops add')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COLLABORATORS_CSV_PATH: ${{ github.workspace }}/data/collaborator.csv
-      run: |
-        if [ -z "$(ls -A ${{ github.workspace }}/data)" ]; then
-          echo "Error: data directory is empty"
-          exit 1
-        fi
-        
-        if [ ! -f "$COLLABORATORS_CSV_PATH" ]; then
-          echo "Error: collaborator.csv not found at $COLLABORATORS_CSV_PATH"
-          ls -la $(dirname "$COLLABORATORS_CSV_PATH")
-          exit 1
-        fi
-        
-        echo "collaborator.csv found, running script"
-        python scripts/add.py
+        COMMENT_BODY: ${{ github.event.comment.body }}
+      run: python scripts/add.py
