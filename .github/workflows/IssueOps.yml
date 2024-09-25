@@ -30,6 +30,8 @@ jobs:
         ls -la
         echo "Contents of scripts directory:"
         ls -la scripts/
+        echo "Contents of data directory:"
+        ls -la data/
         echo "Environment variables:"
         env
         echo "GitHub workspace:"
@@ -41,15 +43,19 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         INVITATIONS_CSV_PATH: ${{ github.workspace }}/data/invitations.csv
       run: |
-        echo "INVITATIONS_CSV_PATH: $INVITATIONS_CSV_PATH"
-        if [ -f "$INVITATIONS_CSV_PATH" ]; then
-          echo "invitations.csv found, running script"
-          python scripts/add_repo.py
-        else
+        if [ -z "$(ls -A ${{ github.workspace }}/data)" ]; then
+          echo "Error: data directory is empty"
+          exit 1
+        fi
+        
+        if [ ! -f "$INVITATIONS_CSV_PATH" ]; then
           echo "Error: invitations.csv not found at $INVITATIONS_CSV_PATH"
           ls -la $(dirname "$INVITATIONS_CSV_PATH")
           exit 1
         fi
+        
+        echo "invitations.csv found, running script"
+        python scripts/add_repo.py
 
     - name: Run add script
       if: contains(github.event.comment.body, '/issueops add')
@@ -57,12 +63,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COLLABORATORS_CSV_PATH: ${{ github.workspace }}/data/collaborator.csv
       run: |
-        echo "COLLABORATORS_CSV_PATH: $COLLABORATORS_CSV_PATH"
-        if [ -f "$COLLABORATORS_CSV_PATH" ]; then
-          echo "collaborator.csv found, running script"
-          python scripts/add.py
-        else
+        if [ -z "$(ls -A ${{ github.workspace }}/data)" ]; then
+          echo "Error: data directory is empty"
+          exit 1
+        fi
+        
+        if [ ! -f "$COLLABORATORS_CSV_PATH" ]; then
           echo "Error: collaborator.csv not found at $COLLABORATORS_CSV_PATH"
           ls -la $(dirname "$COLLABORATORS_CSV_PATH")
           exit 1
         fi
+        
+        echo "collaborator.csv found, running script"
+        python scripts/add.py
