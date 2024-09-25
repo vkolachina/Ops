@@ -29,6 +29,6 @@ body:
     attributes:
       label: Requester
       description: Who is requesting this onboarding?
-      placeholder: @username
+      placeholder: '@username'
     validations:
       required: true
