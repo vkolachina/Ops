@@ -1,3 +1,5 @@
+# add_repo.py
+
 import requests
 import os
 import re
@@ -28,8 +30,6 @@ def get_user_id(username):
         return user_id
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to get user ID for {username}. Error: {str(e)}")
-        logger.error(f"Request URL: {url}")
-        logger.error(f"Request headers: {headers}")
         if hasattr(e, 'response') and e.response is not None:
             logger.error(f"Status code: {e.response.status_code}")
             logger.error(f"Response body: {e.response.text}")
@@ -73,8 +73,7 @@ def get_pending_invitations(owner, repo):
 
     return pending_usernames
 
-def add_collaborator(collaborator, owner_repo):
-    owner, repo = owner_repo.split('/')
+def add_collaborator(collaborator, owner, repo):
     pending_usernames = get_pending_invitations(owner, repo)
 
     if collaborator in pending_usernames:
@@ -120,7 +119,7 @@ def main():
         logger.info(f"Parsed data - Collaborator: {collaborator}, Owner: {owner}, Repo: {repo}")
         user_id = get_user_id(collaborator)
         if user_id:
-            add_collaborator(collaborator, f"{owner}/{repo}")
+            add_collaborator(collaborator, owner, repo)
         else:
             logger.error(f"Failed to get user ID for {collaborator}. Skipping invitation.")
     else:
