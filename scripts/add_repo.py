@@ -19,11 +19,17 @@ def get_user_id(username):
         "Accept": "application/vnd.github+json"
     }
     try:
+        logger.info(f"Sending request to get user ID for {username}")
+        logger.info(f"Token used (first 10 chars): {TOKEN[:10]}...")
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return response.json()['id']
+        user_id = response.json()['id']
+        logger.info(f"Successfully retrieved user ID for {username}: {user_id}")
+        return user_id
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to get user ID for {username}. Error: {str(e)}")
+        logger.error(f"Request URL: {url}")
+        logger.error(f"Request headers: {headers}")
         if hasattr(e, 'response') and e.response is not None:
             logger.error(f"Status code: {e.response.status_code}")
             logger.error(f"Response body: {e.response.text}")
@@ -67,7 +73,8 @@ def get_pending_invitations(owner, repo):
 
     return pending_usernames
 
-def add_collaborator(collaborator, owner, repo):
+def add_collaborator(collaborator, owner_repo):
+    owner, repo = owner_repo.split('/')
     pending_usernames = get_pending_invitations(owner, repo)
 
     if collaborator in pending_usernames:
@@ -105,13 +112,15 @@ def main():
         logger.error("COMMENT_BODY not found. Please set the COMMENT_BODY environment variable.")
         return 1
 
+    logger.info(f"Received comment: {COMMENT_BODY}")
+
     parsed_data = parse_comment(COMMENT_BODY)
     if parsed_data:
         collaborator, owner, repo = parsed_data
         logger.info(f"Parsed data - Collaborator: {collaborator}, Owner: {owner}, Repo: {repo}")
         user_id = get_user_id(collaborator)
         if user_id:
-            add_collaborator(collaborator, owner, repo)
+            add_collaborator(collaborator, f"{owner}/{repo}")
         else:
             logger.error(f"Failed to get user ID for {collaborator}. Skipping invitation.")
     else:
