@@ -21,11 +21,29 @@ def add_user_to_repo(username, repo, permission):
         print(f"Failed to add {username} to {repo}. Status code: {response.status_code}")
         print(response.json())
 
-def main(users_data):
+def main():
+    comment_body = os.getenv('COMMENT_BODY')
+    if not comment_body:
+        print("Error: COMMENT_BODY not found. Please set the COMMENT_BODY environment variable.")
+        sys.exit(1)
+
+    users_data = [line.strip() for line in comment_body.split('\n') 
+                  if line.strip() and not line.startswith('/')]
+
     for user_data in users_data:
-        username, repo, permission = user_data.split(',')
-        add_user_to_repo(username.strip(), repo.strip(), permission.strip())
+        try:
+            parts = user_data.split(',')
+            if len(parts) != 3:
+                print(f"Invalid format for user data: {user_data}")
+                continue
+            username, repo, permission = parts
+            add_user_to_repo(username.strip(), repo.strip(), permission.strip())
+        except ValueError as e:
+            print(f"Error processing user data: {user_data}")
+            print(f"Error message: {str(e)}")
+        except Exception as e:
+            print(f"Unexpected error processing user data: {user_data}")
+            print(f"Error message: {str(e)}")
 
 if __name__ == "__main__":
-    users_data = sys.argv[1].split(';')
-    main(users_data)
+    main()
