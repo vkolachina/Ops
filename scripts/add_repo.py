@@ -1,10 +1,7 @@
 import requests
 import os
 import re
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+import sys
 
 GITHUB_API_URL = "https://api.github.com"
 TOKEN = os.getenv('GITHUB_TOKEN')
@@ -38,8 +35,9 @@ def get_pending_invitations(owner, repo):
 
     while True:
         params = {'page': page, 'per_page': per_page}
-        response = requests.get(url, headers=headers, params=params)
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
             invitations = response.json()
             if not invitations:
                 break
@@ -49,9 +47,12 @@ def get_pending_invitations(owner, repo):
                 if username:
                     pending_usernames.add(username)
             page += 1
-        else:
-            print(f"Error: Failed to fetch invitations for {owner}/{repo}. Status code: {response.status_code}")
-            print(response.json())
+        except requests.exceptions.RequestException as e:
+            print(f"Error: Failed to fetch invitations for {owner}/{repo}.")
+            print(f"Exception: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Status code: {e.response.status_code}")
+                print(f"Response body: {e.response.text}")
             break
 
     return pending_usernames
@@ -76,26 +77,30 @@ def add_collaborator(collaborator, owner, repo):
         "permission": "admin"  # You can adjust this to the desired permission: pull, push, admin
     }
 
-    response = requests.put(url, headers=headers, json=data)
+    try:
+        response = requests.put(url, headers=headers, json=data)
+        response.raise_for_status()
+        if response.status_code == 201:
+            print(f"Success: Collaborator '{collaborator}' was added to {owner}/{repo}.")
+        elif response.status_code == 204:
+            print(f"Info: Collaborator '{collaborator}' is already a member of {owner}/{repo}.")
+    except requests.exceptions.RequestException as e:
+        print(f"Error: Failed to add collaborator '{collaborator}' to {owner}/{repo}.")
+        print(f"Exception: {str(e)}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Status code: {e.response.status_code}")
+            print(f"Response body: {e.response.text}")
 
-    if response.status_code == 201:
-        print(f"Success: Collaborator '{collaborator}' was added to {owner}/{repo}.")
-    elif response.status_code == 204:
-        print(f"Info: Collaborator '{collaborator}' is already a member of {owner}/{repo}.")
-    else:
-        print(f"Error: Failed to add collaborator '{collaborator}' to {owner}/{repo}. Status code: {response.status_code}")
-        print(response.json())
-
-if __name__ == "__main__":
+def main():
     # Ensure the GITHUB_TOKEN is available
     if not TOKEN:
         print("Error: GitHub token not found. Please set the GITHUB_TOKEN environment variable.")
-        exit(1)
+        return 1
 
     # Ensure the COMMENT_BODY is available
     if not COMMENT_BODY:
         print("Error: COMMENT_BODY not found. Please set the COMMENT_BODY environment variable.")
-        exit(1)
+        return 1
 
     # Parse the comment for command information
     parsed_data = parse_comment(COMMENT_BODY)
@@ -105,3 +110,9 @@ if __name__ == "__main__":
         add_collaborator(collaborator, owner, repo)
     else:
         print("Error: Invalid command format. Use '/issueops add_repo username owner/repo'")
+        return 1
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
