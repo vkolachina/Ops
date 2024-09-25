@@ -1,19 +1,19 @@
-name: IssueOps
+name: User Onboarding Automation
 
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  process-command:
+  process_command:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '/issueops')
+    if: contains(github.event.comment.body, '/onboard')
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v2
       with:
         python-version: '3.x'
 
@@ -22,49 +22,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
 
-    - name: Debug - Environment and File System
-      run: |
-        echo "Current working directory:"
-        pwd
-        echo "Contents of current directory:"
-        ls -la
-        echo "Contents of scripts directory:"
-        ls -la scripts/
-        echo "Installed Python packages:"
-        pip list
-        echo "Python version:"
-        python --version
-
-    - name: Run add_repo script
-      if: contains(github.event.comment.body, '/issueops add_repo')
+    - name: Process repository additions
+      if: contains(github.event.comment.body, '/onboard repos')
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        COMMENT_BODY: ${{ github.event.comment.body }}
       run: |
-        echo "Running add_repo script"
-        python -u scripts/add_repo.py
-        if [ $? -ne 0 ]; then
-          echo "Error: add_repo script failed"
-          exit 1
-        fi
+        USERS_DATA=$(echo "${{ github.event.comment.body }}" | sed -n '/\/onboard repos/,/\/end/p' | sed '1d;$d')
+        python scripts/add_to_repos.py "$USERS_DATA"
 
-    - name: Run add script
-      if: contains(github.event.comment.body, '/issueops add')
+    - name: Process organization additions
+      if: contains(github.event.comment.body, '/onboard orgs')
       env:
         GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        COMMENT_BODY: ${{ github.event.comment.body }}
       run: |
-        echo "Running add script"
-        python -u scripts/add.py
-        if [ $? -ne 0 ]; then
-          echo "Error: add script failed"
-          exit 1
-        fi
-
-    - name: Error handling
-      if: failure()
-      run: |
-        echo "An error occurred during the workflow execution"
-        echo "Please check the logs above for more details"
-        echo "GitHub Token status: ${{ secrets.PERSONAL_ACCESS_TOKEN != '' }}"
-        echo "Comment Body: ${{ github.event.comment.body }}"
+        USERS_DATA=$(echo "${{ github.event.comment.body }}" | sed -n '/\/onboard orgs/,/\/end/p' | sed '1d;$d')
+        python scripts/add_to_orgs.py "$USERS_DATA"
