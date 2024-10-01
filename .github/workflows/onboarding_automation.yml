@@ -30,6 +30,7 @@ jobs:
       run: |
         USERS_DATA=$(echo "$COMMENT_BODY" | sed -n '/\/onboard orgs/,/\/end/p' | sed '1d;$d')
         python scripts/add_to_orgs.py "$USERS_DATA"
+      continue-on-error: true
 
     - name: Process repository additions
       if: contains(github.event.comment.body, '/onboard repos')
@@ -39,3 +40,10 @@ jobs:
       run: |
         USERS_DATA=$(echo "$COMMENT_BODY" | sed -n '/\/onboard repos/,/\/end/p' | sed '1d;$d')
         python scripts/add_to_repos.py "$USERS_DATA"
+      continue-on-error: true
+
+    - name: Check for failures
+      if: failure()
+      run: |
+        echo "One or more onboarding processes failed. Please check the logs for details."
+        exit 1
